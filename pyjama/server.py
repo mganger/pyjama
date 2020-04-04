@@ -1,34 +1,33 @@
-from .udp import udp_writer, udp_reader
-from time import time, sleep
+from time import sleep
+import socketserver
+from threading import Thread
+import json
+from contextlib import contextmanager
 
-class Server:
-    def __init__(self):
-        self.clients = {}
-        self.next_update = None
+@contextmanager
+def listener(ip, port):
+    class InnerServer(socketserver.ThreadingMixIn,
+                            socketserver.UDPServer):
+        client_list = {}
+        
+    class UDPHandler(socketserver.BaseRequestHandler):
+        def handle(self):
+            ip, port = self.client_address
+            InnerServer.client_list[ip] = port
+    
+    with InnerServer((ip, port), UDPHandler) as server:
+        thread = Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+        yield server
 
-    def add(self, addr):
-        ip, port = addr
-        if ip not in self.clients:
-            self.clients[ip] = port
-            self.next_update = time()
-
-    def notify(self):
-        print("notifying!")
-        self.next_update = time() + 0.1
-
-    def should_update(self):
-        return len(self.clients) > 0 \
-                and self.next_update is not None \
-                and time() >= self.next_update
+def notify(sock, client_list):
+    message = json.dumps(client_list).encode('utf8')
+    for ip, port in client_list.items():
+        sock.sendto(message, (ip, port))
 
 if __name__ == "__main__":
-    server = Server()
-    with udp_reader() as messages:
+    with listener('0.0.0.0', 4464) as server:
         while True:
-            if not messages.empty():
-                data, addr = messages.get()
-                print(data, addr)
-                server.add(addr)
-            if server.should_update():
-                server.notify()
-            sleep(0.01)
+            notify(server.socket, server.client_list)
+            sleep(0.1)

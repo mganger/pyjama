@@ -1,9 +1,10 @@
-import socket
+from .udp import udp_reader, udp_writer
 from time import sleep
 
-sock = socket.socket(socket.AF_INET,
-                     socket.SOCK_DGRAM)
+def message():
+    while True:
+        yield b"hello"
+        sleep(0.5)
 
-while True:
-    sock.sendto(b"Hi!", ('127.0.0.1', 4464))
-    sleep(1.0)
+if __name__ == "__main__":
+    udp_writer(message(), '127.0.0.1', 4464)

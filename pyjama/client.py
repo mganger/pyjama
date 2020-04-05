@@ -5,6 +5,7 @@ from threading import Thread
 from contextlib import contextmanager
 from argparse import ArgumentParser
 import uuid
+import gzip
 
 @contextmanager
 def register(ip, port):
@@ -14,7 +15,7 @@ def register(ip, port):
 
     class ClientListReceiver(socketserver.BaseRequestHandler):
         def handle(self):
-            data = self.request[0].decode()
+            data = gzip.decompress(self.request[0]).decode()
             InnerServer.client_list = json.loads(data)
 
     def say_hello(socket):

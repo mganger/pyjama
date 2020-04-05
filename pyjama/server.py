@@ -2,6 +2,7 @@ from time import sleep
 import socketserver
 from threading import Thread
 import json
+import gzip
 from contextlib import contextmanager
 
 @contextmanager
@@ -27,6 +28,7 @@ def listener(ip, port):
 
 def notify(sock, client_list):
     message = json.dumps(client_list).encode('utf8')
+    message = gzip.compress(message)
     for cli in client_list.values():
         sock.sendto(message, (cli['ip'], cli['port']))
 

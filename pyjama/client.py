@@ -4,11 +4,13 @@ import json
 from threading import Thread
 from contextlib import contextmanager
 from argparse import ArgumentParser
+import uuid
 
 @contextmanager
 def register(ip, port):
     class InnerServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
         client_list = None
+        name = str(uuid.uuid4())
 
     class ClientListReceiver(socketserver.BaseRequestHandler):
         def handle(self):
@@ -17,7 +19,8 @@ def register(ip, port):
 
     def say_hello(socket):
         while True:
-            socket.sendto(b'hello', (ip, port))
+            socket.sendto(ClientListReceiver.name.encode('utf8'),
+                          (ip, port))
             sleep(0.1)
 
     with InnerServer(('0.0.0.0', 4465), ClientListReceiver) as server:

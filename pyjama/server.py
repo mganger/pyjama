@@ -13,6 +13,7 @@ def listener(ip, port):
     class UDPHandler(socketserver.BaseRequestHandler):
         def handle(self):
             ip, port = self.client_address
+            name = self.request[0].decode()
             InnerServer.client_list[ip] = port
     
     with InnerServer((ip, port), UDPHandler) as server:

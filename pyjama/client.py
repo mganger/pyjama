@@ -19,7 +19,7 @@ def register(ip, port):
 
     def say_hello(socket):
         while True:
-            socket.sendto(ClientListReceiver.name.encode('utf8'),
+            socket.sendto(InnerServer.name.encode('utf8'),
                           (ip, port))
             sleep(0.1)
 

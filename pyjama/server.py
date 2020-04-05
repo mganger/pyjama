@@ -14,7 +14,10 @@ def listener(ip, port):
         def handle(self):
             ip, port = self.client_address
             name = self.request[0].decode()
-            InnerServer.client_list[ip] = port
+            InnerServer.client_list[name] = {
+                'ip': ip,
+                'port': port,
+            }
     
     with InnerServer((ip, port), UDPHandler) as server:
         thread = Thread(target=server.serve_forever)

@@ -27,8 +27,8 @@ def listener(ip, port):
 
 def notify(sock, client_list):
     message = json.dumps(client_list).encode('utf8')
-    for ip, port in client_list.items():
-        sock.sendto(message, (ip, port))
+    for cli in client_list.values():
+        sock.sendto(message, (cli['ip'], cli['port']))
 
 if __name__ == "__main__":
     with listener('0.0.0.0', 4464) as server:

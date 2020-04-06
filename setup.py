@@ -4,4 +4,5 @@ setup(
     name='PyJama',
     packages=['pyjama'],
     license='MIT',
+    install_requires=['opuslib', 'sounddevice'],
 )

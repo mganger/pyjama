@@ -1,39 +1,29 @@
 from time import sleep
-import socketserver
-import json
-from threading import Thread
-from contextlib import contextmanager
 from argparse import ArgumentParser
-import uuid
-import gzip
+from .udp import UDPServer
+from .util import daemon, every
 
-@contextmanager
-def register(ip, port):
-    class InnerServer(socketserver.ThreadingMixIn, socketserver.UDPServer):
-        client_list = None
-        name = str(uuid.uuid4())
 
-    class ClientListReceiver(socketserver.BaseRequestHandler):
-        def handle(self):
-            data = gzip.decompress(self.request[0]).decode()
-            InnerServer.client_list = json.loads(data)
+class Jammer(UDPServer):
+    def __init__(self, serve_ip, serve_port, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.serve_ip = serve_ip
+        self.serve_port = serve_port
+        self.roster = {}
 
-    def say_hello(socket):
-        while True:
-            socket.sendto(InnerServer.name.encode('utf8'),
-                          (ip, port))
-            sleep(0.1)
+    def on_message(self, data, ip, port):
+        if data['type'] == 'roster':
+            self.roster = data['payload']
 
-    with InnerServer(('0.0.0.0', 4465), ClientListReceiver) as server:
-        thread = Thread(target=server.serve_forever)
-        thread.daemon = True
-        thread.start()
+    def __enter__(self, *args, **kwargs):
+        ret = super().__enter__(*args, **kwargs)
+        daemon(target=every(0.1, self.say_hello)).start()
+        return ret
 
-        greeter = Thread(target=say_hello, args=(server.socket,))
-        greeter.daemon = True
-        greeter.start()
+    def say_hello(self):
+        self.sendto({'type': 'greeting', 'name': self.name},
+                    (self.serve_ip, self.serve_port))
 
-        yield server
 
 if __name__ == "__main__":
     parser = ArgumentParser('PyJama client')
@@ -41,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument('--port', default=4464)
     args = parser.parse_args()
 
-    with register(args.ip, args.port) as server:
+    with Jammer(args.ip, args.port, bind_port=4465) as jam:
         while True:
-            print(server.client_list)
+            print(jam.roster)
             sleep(1)
